@@ -1,3 +1,11 @@
+
+
 # Data
 *.tif
 *.tiff
+
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
