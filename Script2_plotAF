@@ -1,0 +1,89 @@
+library(terra) 
+library(sf)  
+
+library(tidyverse)
+library(tidyr)  
+library(dplyr)  
+library(ggplot2)  
+library(landscapemetrics)
+
+library(raster)
+library(scales)
+
+files <- list.files(
+  "BinaryRaster",
+  pattern = "_binary\\.tif$",
+  full.names = TRUE
+)
+
+files
+
+forest_counts <- data.frame(
+  year = integer(),
+  forest_pixels = numeric()
+)
+
+for (f in files) {
+  r <- rast(f)
+  # count forest pixels (value = 1)
+  n_forest <- global(r, "sum", na.rm = TRUE)[1,1]
+  # extract year from filename
+  year <- as.numeric(sub("^forest([0-9]{4}).*", "\\1", basename(f)))
+  forest_counts <- rbind(
+    forest_counts,
+    data.frame(
+      year = year,
+      forest_pixels = n_forest
+    )
+  )
+}
+
+
+write.csv(
+  forest_counts,
+  "forest_counts_Script2_new.csv",
+  row.names = FALSE
+) ##only save it once
+
+forest_counts <- read.csv("forest_counts_Script2_new.csv")
+
+forest_counts <- forest_counts[order(forest_counts$year), ]
+
+forest_counts
+
+
+ggplot(forest_counts,
+       aes(x = year, y = forest_pixels)) +
+  geom_line() +
+  geom_point() +
+  labs(
+  title = "Forest cover over time",
+  x = "Year",
+  y = "Number of forest pixels"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_vline(xintercept = 2001, color = "deeppink") +
+  geom_vline(xintercept = 2015, color = "lightsalmon") +
+  scale_x_continuous(breaks = seq(min(forest_counts$year), max(forest_counts$year), by = 1)) +
+  scale_y_continuous(labels = comma)
+
+##mha instead of pixel number
+
+ggplot(forest_counts,
+       aes(x = year, y = forest_pixels)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Forest cover over time",
+    x = "Year",
+    y = "Forest cover (mha)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_vline(xintercept = 2001, color = "deeppink") +
+  geom_vline(xintercept = 2015, color = "lightsalmon") +
+  scale_x_continuous(breaks = seq(min(forest_counts$year), max(forest_counts$year), by = 1)) +
+  scale_y_continuous(
+    labels = function(x) round(x * 0.09 / 1e6, 1)
+  )
