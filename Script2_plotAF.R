@@ -10,27 +10,37 @@ library(landscapemetrics)
 library(raster)
 library(scales)
 
-files <- list.files(
-  "BinaryRaster",
-  pattern = "_binary\\.tif$",
+install.packages("writexl") # only once
+library(writexl)
+install.packages("readxl")  # only once
+library(readxl)
+
+getwd()
+## setwd("/home/verena/Documents/Project/WorkSpace/Data")
+## setwd("/home/verena/Documents/Project/WorkSpace")
+
+BinaryFiles_forest <- list.files(
+  "LULC_11",
+  pattern = "_atlantic_forest_.*\\.tif$",
   full.names = TRUE
 )
 
-files
+BinaryFiles_forest
+print(BinaryFiles_forest)
 
-forest_counts <- data.frame(
+ForestCount_pixel <- data.frame(
   year = integer(),
   forest_pixels = numeric()
 )
 
-for (f in files) {
+for (f in BinaryFiles_forest) {
   r <- rast(f)
   # count forest pixels (value = 1)
   n_forest <- global(r, "sum", na.rm = TRUE)[1,1]
   # extract year from filename
-  year <- as.numeric(sub("^forest([0-9]{4}).*", "\\1", basename(f)))
-  forest_counts <- rbind(
-    forest_counts,
+  year <- as.numeric(sub(".*_(\\d{4})\\.tif$", "\\1", basename(f)))
+  ForestCount_pixel <- rbind(
+    ForestCount_pixel,
     data.frame(
       year = year,
       forest_pixels = n_forest
@@ -39,20 +49,21 @@ for (f in files) {
 }
 
 
-write.csv(
-  forest_counts,
-  "forest_counts_Script2_new.csv",
-  row.names = FALSE
-) ##only save it once
+setwd("/home/verena/Documents/Project/WorkSpace/Results")
 
-forest_counts <- read.csv("forest_counts_Script2_new.csv")
+write_xlsx(
+  ForestCount_pixel,
+  "Script2_ForestCount_pixel.xlsx"
+)
 
-forest_counts <- forest_counts[order(forest_counts$year), ]
+## ForestCount_pixel <- read_xlsx("Script2_ForestCount_pixel.xlsx")
 
-forest_counts
+ForestCount_pixel <- ForestCount_pixel[order(ForestCount_pixel$year), ]
+
+ForestCount_pixel
 
 
-ggplot(forest_counts,
+ggplot(ForestCount_pixel,
        aes(x = year, y = forest_pixels)) +
   geom_line() +
   geom_point() +
@@ -65,12 +76,12 @@ ggplot(forest_counts,
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   geom_vline(xintercept = 2001, color = "deeppink") +
   geom_vline(xintercept = 2015, color = "lightsalmon") +
-  scale_x_continuous(breaks = seq(min(forest_counts$year), max(forest_counts$year), by = 1)) +
+  scale_x_continuous(breaks = seq(min(ForestCount_pixel$year), max(ForestCount_pixel$year), by = 1)) +
   scale_y_continuous(labels = comma)
 
 ##mha instead of pixel number
 
-ggplot(forest_counts,
+ggplot(ForestCount_pixel,
        aes(x = year, y = forest_pixels)) +
   geom_line() +
   geom_point() +
@@ -83,7 +94,7 @@ ggplot(forest_counts,
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   geom_vline(xintercept = 2001, color = "deeppink") +
   geom_vline(xintercept = 2015, color = "lightsalmon") +
-  scale_x_continuous(breaks = seq(min(forest_counts$year), max(forest_counts$year), by = 1)) +
+  scale_x_continuous(breaks = seq(min(ForestCount_pixel$year), max(ForestCount_pixel$year), by = 1)) +
   scale_y_continuous(
     labels = function(x) round(x * 0.09 / 1e6, 1)
   )
