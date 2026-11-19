@@ -20,8 +20,8 @@ getwd()
 ## setwd("/home/verena/Documents/Project/WorkSpace")
 
 BinaryFiles_forest <- list.files(
-  "LULC_11",
-  pattern = "_atlantic_forest_.*\\.tif$",
+  "Forest_Binary",
+  pattern = "forest.*_binary\\.tif$",
   full.names = TRUE
 )
 
@@ -38,7 +38,7 @@ for (f in BinaryFiles_forest) {
   # count forest pixels (value = 1)
   n_forest <- global(r, "sum", na.rm = TRUE)[1,1]
   # extract year from filename
-  year <- as.numeric(sub(".*_(\\d{4})\\.tif$", "\\1", basename(f)))
+  year <- as.numeric(sub("forest(\\d{4}).*\\.tif$", "\\1", basename(f)))
   ForestCount_pixel <- rbind(
     ForestCount_pixel,
     data.frame(
@@ -48,6 +48,13 @@ for (f in BinaryFiles_forest) {
   )
 }
 
+#------ test
+
+r <- rast("Forest_Binary/forest1988_binary.tif"[1])
+
+freq(r)
+
+#-------------
 
 setwd("/home/verena/Documents/Project/WorkSpace/Results")
 
