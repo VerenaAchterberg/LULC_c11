@@ -48,7 +48,7 @@ for (f in BinaryFiles_forest) {
   )
 }
 
-#------ test
+#------ test if binary files only contain 1 and 0
 
 r <- rast("Forest_Binary/forest1988_binary.tif"[1])
 
