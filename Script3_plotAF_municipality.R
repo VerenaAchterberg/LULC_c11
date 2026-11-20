@@ -100,8 +100,6 @@ for (f in rasters) {
 }
 #----------------------------------
 
-
-
 forest_by_year_ha <- do.call(rbind, results_mun_pixel)
 print(forest_by_year_ha)
 
@@ -138,6 +136,39 @@ write_xlsx(forest_by_year_pixel_wide,
           "Script3_forest_municipality_pixel_wide.xlsx")
 write_xlsx(forest_by_year_ha_wide,
            "Script3_forest_municipality_ha_wide.xlsx")
+
+
+# plot all municipalities separately
+
+ggplot(forest_by_year_ha,
+       aes(x = year,
+           y = forest_ha,
+           group = CD_MUN)) +
+  geom_line(alpha = 0.6, linewidth = 0.2) +
+  theme_minimal() +
+  labs(
+    x = "Year",
+    y = "Forest cover (ha)",
+    title = "Forest cover change of all municipalities"
+  ) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_y_continuous(labels = comma) +
+
+
+#relative forest cover change of each municipality compared to first year
+
+forest_long <- forest_by_year_ha %>%
+  group_by(CD_MUN) %>%
+  mutate(
+    forest_rel = forest_ha / first(forest_ha)
+  )
+
+ggplot(forest_long,
+       aes(year, forest_rel, group = CD_MUN)) +
+  geom_line(alpha = 0.1) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+
+
 
 
 
