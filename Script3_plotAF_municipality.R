@@ -11,42 +11,47 @@ library(raster)
 library(scales)
 
 getwd()
+setwd("/home/verena/Documents/Project/WorkSpace/Data")
 
-muni_rast <- rast("AFmunicipalities_raster.tif")
-names(muni_rast)
+municipality_raster <- rast("Municipalities/IBGEmun_clipped_LULCMB_raster.tif")
+names(municipality_raster)
 
-rasters <- list.files(
-  path = "BinaryRaster",
-  pattern = "_binary\\.tif$",
+BinaryFiles_forest <- list.files(
+  "Forest_Binary",
+  pattern = "forest.*_binary\\.tif$",
   full.names = TRUE
 )
 
-rasters
-
-r0 <- rast(rasters[1])
-r0
+BinaryFiles_forest
+r0 <- rast(BinaryFiles_forest[1]) #loads first raster
+r0                                #check file
 
 crs(r0)
-crs(muni_rast)
-same.crs(r0,muni_rast) ##if it wasn't TRUE follow steps below
-##muni_rast <- project(muni_rast, crs(r0))
-##same.crs(r0,muni_rast)
+same.crs(r0,municipality_raster) #if it wasn't TRUE follow steps below
+crs(municipality_raster)
+      #muni_rast <- project(muni_rast, crs(r0))
+      #same.crs(r0,muni_rast)
 
-r <- rast(rasters[1]) ##test??
+
+      #sum forest pixel for each municipality
+
+r <- rast(BinaryFiles_forest[1])
 
 z <- zonal(
   r,
-  muni_rast,
+  municipality_raster,
   fun = "sum",
   na.rm = TRUE
 )
 
 head(z)
+print(z)
 
 
-results <- list()
+results_mun_pixel <- list()     #create empty list
 
-for (f in rasters) {
+  # loop all binary files (results in ha, but pixel column should be there too)
+for (f in BinaryFiles_forest) {
   r <- rast(f)
   year <- sub(
     "^forest([0-9]{4}).*",
@@ -55,69 +60,21 @@ for (f in rasters) {
   )
   z <- zonal(
     r,
-    muni_rast,
+    municipality_raster,
     fun = "sum",
     na.rm = TRUE
   )
   names(z) <- c("CD_MUN", "forest_pixels")
   z$forest_ha <- z$forest_pixels * 0.09
   z$year <- year
-  results[[year]] <- z
+  results_mun_pixel[[year]] <- z
   cat("Finished:", year, "\n")
 }
 
-##--------------------------fixing 2016 and 2022
-r2015 <- rast("BinaryRaster/forest2015_binary.tif")
-r2016 <- rast("BinaryRaster/forest2016_binary.tif")
-r2022 <- rast("BinaryRaster/forest2022_binary.tif")
-
-ext(r2015)
-ext(r2016)
-
-res(r2015)
-res(r2016)
-
-crs(r2015)
-crs(r2016)
-
-compareGeom(r2015, r2016) ##extends do not match
-compareGeom(r2016, muni_rast)
-
-r2016_aligned <- resample(
-  r2016,
-  muni_rast,
-  method = "near"
-)
-
-compareGeom(r2016_aligned, muni_rast)
-
-writeRaster(
-  r2016_aligned,
-  "BinaryRaster/forest2016_binary_aligned.tif",
-  overwrite = TRUE
-)
-
-
-r2022_aligned <- resample(
-  r2022,
-  muni_rast,
-  method = "near"
-)
-
-compareGeom(r2022_aligned, muni_rast)
-
-writeRaster(
-  r2022_aligned,
-  "BinaryRaster/forest2022_binary_aligned.tif",
-  overwrite = TRUE
-)
-
-##load list again further up!!
-
-completed_years <- names(results)
+completed_years <- names(results_mun_pixel) #check results
 completed_years
 
-
+#--------------------- only run this is something failed
 for (f in rasters) {
   year <- sub(
     "^forest([0-9]{4}).*",
@@ -141,32 +98,48 @@ for (f in rasters) {
   results[[year]] <- z
   cat("Finished:", year, "\n")
 }
-
-##----------------------------------
-
+#----------------------------------
 
 
-forest_by_year <- do.call(rbind, results)
 
-write.csv(
-  forest_by_year,
-  "forest_area_by_municipality_new.csv",
-  row.names = FALSE
-)
+forest_by_year_ha <- do.call(rbind, results_mun_pixel)
+print(forest_by_year_ha)
 
 
-forest_wide_pixel <- pivot_wider(
-  forest_by_year,
+getwd()
+setwd("/home/verena/Documents/Project/WorkSpace/Results")
+
+write_xlsx(
+  forest_by_year_ha,
+  "Script3_forest_municipality.xlsx")
+
+##here (also plot all municipalities here?), but also first push
+#wide table with pixel value
+forest_by_year_pixel_wide <- pivot_wider(
+  forest_by_year_ha,
   id_cols = CD_MUN,
   names_from = year,
   values_from = forest_pixels
 )
 
-print(forest_wide_pixel)    ##points behind values mean that these are numeric values that are whole numbers
+#wide table with ha value
+forest_by_year_ha_wide <- pivot_wider(
+  forest_by_year_ha,
+  id_cols = CD_MUN,
+  names_from = year,
+  values_from = forest_ha
+)
 
-write.csv(forest_wide_pixel, "forest_area_by_municipality_wide_new_pixel.csv", row.names = FALSE)
 
-names(forest_by_year)
-print(forest_by_year)
-str(forest_by_year)
-head(z)
+print(forest_by_year_pixel_wide)    ##points behind values mean that these are numeric values that are whole numbers
+print(forest_by_year_ha_wide)
+
+write_xlsx(forest_by_year_pixel_wide,
+          "Script3_forest_municipality_pixel_wide.xlsx")
+write_xlsx(forest_by_year_ha_wide,
+           "Script3_forest_municipality_ha_wide.xlsx")
+
+
+
+
+
